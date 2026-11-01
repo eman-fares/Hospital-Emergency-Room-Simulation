@@ -72,7 +72,11 @@ The project uses semaphores to manage access to shared resources:
 Developed as part of the CS241 / SCS241 assignment.
 
 ## Contributors
-
+Marly Sameh
+Heba Ramadan
+Ahd Ashraf
+Nada Mahmoud
+Eman Fares
 
 
 ---
