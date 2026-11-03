@@ -24,18 +24,20 @@ public class Patient extends Thread {
         try {
             Logger.log("P" + patientId + " arrived.");
 
-            waitingRoom.addPatient(this);
-            Logger.log("P" + patientId + " entered the waiting room.");
+            if (waitingRoom.addPatient(this)) {
+                Logger.log("P" + patientId + " entered the waiting room.");
+            } else {
+                Logger.log("The waiting room is full.");
+                Logger.log("P" + patientId + " is waiting outside for an available seat.");
+                waitingRoom.enterWaitingRoom(this);
+                Logger.log("P" + patientId + " entered the waiting room.");
+            }
 
-            waitForTreatment();
+            treated.acquire();
 
             Logger.log("P" + patientId + " left.");
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
-    }
-
-    public void waitForTreatment() throws InterruptedException {
-        treated.acquire();
     }
 }

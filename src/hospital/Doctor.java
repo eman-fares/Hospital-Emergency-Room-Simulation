@@ -5,128 +5,126 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
 public class Doctor extends Thread {
 
-    private int doctorId;
-    private WaitingRoom waitingRoom;
-    private TreatmentRoomManager treatmentRooms;
-    private int patientsCount;
+        private int doctorId;
+        private WaitingRoom waitingRoom;
+        private TreatmentRoomManager treatmentRooms;
+        private int patientsCount;
 
-    private static AtomicInteger completedPatients = new AtomicInteger(0);
-    private static CopyOnWriteArrayList<Doctor> allDoctors =
-            new CopyOnWriteArrayList<>();
+        private static AtomicInteger completedPatients = new AtomicInteger(0);
+        private static CopyOnWriteArrayList<Doctor> allDoctors = new CopyOnWriteArrayList<>();
 
-    public Doctor(int doctorId,
-                  WaitingRoom waitingRoom,
-                  TreatmentRoomManager treatmentRooms,
-                  int patientsCount) {
+        public Doctor(int doctorId,
+                        WaitingRoom waitingRoom,
+                        TreatmentRoomManager treatmentRooms,
+                        int patientsCount) {
 
-        this.doctorId = doctorId;
-        this.waitingRoom = waitingRoom;
-        this.treatmentRooms = treatmentRooms;
-        this.patientsCount = patientsCount;
+                this.doctorId = doctorId;
+                this.waitingRoom = waitingRoom;
+                this.treatmentRooms = treatmentRooms;
+                this.patientsCount = patientsCount;
 
-        if (doctorId == 1) {
-            completedPatients.set(0);
-            allDoctors.clear();
+                if (doctorId == 1) {
+                        completedPatients.set(0);
+                        allDoctors.clear();
+                }
+
+                allDoctors.add(this);
         }
 
-        allDoctors.add(this);
-    }
+        @Override
+        public void run() {
 
-    @Override
-    public void run() {
+                while (completedPatients.get() < patientsCount) {
 
-        while (completedPatients.get() < patientsCount) {
+                        Patient patient = null;
+                        boolean roomAcquired = false;
+                        boolean treatmentCompleted = false;
 
-            Patient patient = null;
-            boolean roomAcquired = false;
-            boolean treatmentCompleted = false;
+                        try {
 
-            try {
+                                patient = waitingRoom.removePatient();
 
-                patient = waitingRoom.removePatient();
+                                Logger.log("Doctor " + doctorId
+                                                + " is assigned to P"
+                                                + patient.getPatientId() + ".");
 
-                Logger.log("Doctor " + doctorId
-                        + " is assigned to P"
-                        + patient.getPatientId() + ".");
+                                Logger.log("Doctor " + doctorId
+                                                + " is trying to acquire a treatment room.");
 
-                Logger.log("Doctor " + doctorId
-                        + " is trying to acquire a treatment room.");
+                                roomAcquired = treatmentRooms.acquireRoom();
 
-                roomAcquired = treatmentRooms.acquireRoom();
+                                if (!roomAcquired) {
 
-                if (!roomAcquired) {
+                                        Logger.log("Doctor " + doctorId
+                                                        + " could not acquire a treatment room.");
 
-                    Logger.log("Doctor " + doctorId
-                            + " could not acquire a treatment room.");
+                                        Logger.log("Doctor " + doctorId
+                                                        + " is sending P"
+                                                        + patient.getPatientId()
+                                                        + " back to the waiting room.");
 
-                    Logger.log("Doctor " + doctorId
-                            + " is sending P"
-                            + patient.getPatientId()
-                            + " back to the waiting room.");
+                                        if (waitingRoom.isFull()) {
+                                                Logger.log("The waiting room is full.");
+                                                Logger.log("P" + patient.getPatientId()
+                                                                + " is waiting outside for an available seat.");
+                                        }
+                                        waitingRoom.enterWaitingRoom(patient);
+                                        Logger.log("P" + patient.getPatientId() + " entered the waiting room.");
+                                        Logger.log("Doctor " + doctorId
+                                                        + " is now available.");
 
-                    waitingRoom.addPatient(patient);
+                                        continue;
+                                }
 
-                    Logger.log("Doctor " + doctorId
-                            + " is now available.");
+                                Logger.log("Doctor " + doctorId
+                                                + " acquired a treatment room.");
 
-                    continue;
-                }
+                                Logger.log("Doctor " + doctorId
+                                                + " begins treating P"
+                                                + patient.getPatientId() + ".");
 
-                Logger.log("Doctor " + doctorId
-                        + " acquired a treatment room.");
+                                int treatmentTime = (int) (Math.random() * 2000) + 1000;
 
-                Logger.log("Doctor " + doctorId
-                        + " begins treating P"
-                        + patient.getPatientId() + ".");
+                                Thread.sleep(treatmentTime);
 
-                int treatmentTime =
-                        (int) (Math.random() * 2000) + 1000;
+                                Logger.log("Doctor " + doctorId
+                                                + " finished treating P"
+                                                + patient.getPatientId() + ".");
 
-                Thread.sleep(treatmentTime);
+                                patient.finishTreatment();
+                                treatmentCompleted = true;
 
-                Logger.log("Doctor " + doctorId
-                        + " finished treating P"
-                        + patient.getPatientId() + ".");
+                        } catch (InterruptedException e) {
 
-                treatmentCompleted = true;
+                                Thread.currentThread().interrupt();
 
-            } catch (InterruptedException e) {
+                                return;
 
-                Thread.currentThread().interrupt();
+                        } finally {
 
-                Logger.log("Doctor " + doctorId
-                        + " was interrupted.");
+                                if (roomAcquired) {
+                                        treatmentRooms.releaseRoom();
 
-                return;
-
-            } finally {
-
-                if (roomAcquired) {
-                    treatmentRooms.releaseRoom();
-
-                    Logger.log("Doctor " + doctorId
-                            + " released the treatment room.");
-                }
-            }
-
-            if (treatmentCompleted) {
-
-                int completed = completedPatients.incrementAndGet();
-
-                Logger.log("Doctor " + doctorId
-                        + " is now available.");
-
-                Logger.log("P" + patient.getPatientId()
-                        + " left.");
-
-                if (completed >= patientsCount) {
-                    for (Doctor doctor : allDoctors) {
-                        if (doctor != this) {
-                            doctor.interrupt();
+                                        Logger.log("Doctor " + doctorId
+                                                        + " released the treatment room.");
+                                }
                         }
-                    }
+
+                        if (treatmentCompleted) {
+
+                                int completed = completedPatients.incrementAndGet();
+
+                                Logger.log("Doctor " + doctorId
+                                                + " is now available.");
+
+                                if (completed >= patientsCount) {
+                                        for (Doctor doctor : allDoctors) {
+                                                if (doctor != this) {
+                                                        doctor.interrupt();
+                                                }
+                                        }
+                                }
+                        }
                 }
-            }
         }
-    }
 }
