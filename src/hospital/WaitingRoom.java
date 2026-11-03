@@ -1,4 +1,3 @@
-
 package hospital;
 
 import java.util.LinkedList;
@@ -6,12 +5,12 @@ import java.util.Queue;
 
 public class WaitingRoom {
 
-    private Queue<Patient> queue;
-    public int capacity;
+    private final Queue<Patient> queue;
+    public final int capacity;
 
-    private Semaphore emptySlots;
-    private Semaphore fullSlots;
-    private Semaphore mutex;
+    private final Semaphore emptySlots;
+    private final Semaphore fullSlots;
+    private final Semaphore mutex;
 
     public WaitingRoom(int capacity) {
         if (capacity <= 0) {
@@ -31,29 +30,14 @@ public class WaitingRoom {
             throw new IllegalArgumentException("Patient cannot be null");
         }
 
+        // Try to acquire an empty slot non-blockingly
         if (!emptySlots.tryAcquire(0)) {
             return false;
         }
 
-        boolean added = false;
-        boolean locked = false;
-
-        try {
-            mutex.acquire();
-            locked = true;
-
-            queue.add(patient);
-            added = true;
-
-        } finally {
-            if (locked) {
-                mutex.release();
-            }
-
-            if (!added) {
-                emptySlots.release();
-            }
-        }
+        mutex.acquire();
+        queue.add(patient);
+        mutex.release();
 
         fullSlots.release();
         return true;
@@ -61,42 +45,32 @@ public class WaitingRoom {
 
     public void enterWaitingRoom(Patient patient) throws InterruptedException {
         emptySlots.acquire();
-        boolean added = false;
-        boolean locked = false;
-        try {
-            mutex.acquire();
-            locked = true;
-            queue.add(patient);
-            added = true;
-        } finally {
-            if (locked) {
-                mutex.release();
-            }
-            if (!added) {
-                emptySlots.release();
-            }
-        }
+        mutex.acquire();
+        queue.add(patient);
+        mutex.release();
+        fullSlots.release();
+    }
+
+    public void reenterWaitingRoom(Patient patient) throws InterruptedException {
+        mutex.acquire();
+        queue.add(patient);
+        mutex.release();
         fullSlots.release();
     }
 
     public Patient removePatient() throws InterruptedException {
         fullSlots.acquire();
 
-        boolean locked = false;
-        Patient patient = null;
+        Patient patient;
+        mutex.acquire();
+        patient = queue.poll();
+        mutex.release();
 
-        try {
-            mutex.acquire();
-            locked = true;
-
-            patient = queue.poll();
-        } finally {
-            if (locked) {
-                mutex.release();
-            }
-        }
-        emptySlots.release();
         return patient;
+    }
+
+    public void confirmPatientDeparture() {
+        emptySlots.release();
     }
 
     public synchronized boolean isFull() {

@@ -1,4 +1,5 @@
 package hospital;
+
 import java.util.Scanner;
 
 public class Hospital {
@@ -22,7 +23,6 @@ public class Hospital {
         System.out.print("Number of patients: ");
         patientsCount = input.nextInt();
 
-
         if (capacity <= 0 || doctorsCount <= 0 || patientsCount <= 0) {
             Logger.log("Error: All inputs must be positive numbers.");
             input.close();
@@ -33,8 +33,7 @@ public class Hospital {
 
         WaitingRoom waitingRoom = new WaitingRoom(capacity);
 
-        TreatmentRoomManager treatmentRooms =
-                new TreatmentRoomManager();
+        TreatmentRoomManager treatmentRooms = new TreatmentRoomManager();
 
         Doctor[] doctors = new Doctor[doctorsCount];
 
@@ -46,34 +45,47 @@ public class Hospital {
                     i + 1,
                     waitingRoom,
                     treatmentRooms,
-                    patientsCount
-            );
+                    patientsCount);
         }
 
         for (int i = 0; i < patientsCount; i++) {
 
             patients[i] = new Patient(
                     i + 1,
-                    waitingRoom
-            );
+                    waitingRoom);
         }
 
-        Logger.log("Starting doctors...");
+        Logger.log("Patients arriving:");
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < patientsCount; i++) {
+            sb.append("P").append(patients[i].getPatientId());
+            if (i < patientsCount - 1) {
+                sb.append(" ");
+            }
+        }
+        Logger.log(sb.toString());
 
         for (Doctor doctor : doctors) {
             doctor.start();
         }
 
-        Logger.log("Patients arriving...");
-
         for (Patient patient : patients) {
             patient.start();
+            try {
+                Thread.sleep(150);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
         }
 
         try {
 
             for (Patient patient : patients) {
                 patient.join();
+            }
+
+            for (Doctor doctor : doctors) {
+                doctor.interrupt();
             }
 
             for (Doctor doctor : doctors) {

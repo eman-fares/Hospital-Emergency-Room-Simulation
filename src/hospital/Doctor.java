@@ -69,13 +69,12 @@ public class Doctor extends Thread {
                                                                 + " is waiting outside for an available seat.");
                                         }
                                         waitingRoom.enterWaitingRoom(patient);
-                                        Logger.log("P" + patient.getPatientId() + " entered the waiting room.");
                                         Logger.log("Doctor " + doctorId
                                                         + " is now available.");
-
+                                        Thread.sleep(100);
                                         continue;
                                 }
-
+                                waitingRoom.confirmPatientDeparture();
                                 Logger.log("Doctor " + doctorId
                                                 + " acquired a treatment room.");
 
