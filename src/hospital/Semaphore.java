@@ -1,3 +1,4 @@
+package hospital;
 public class Semaphore {
 
     protected int value = 0;
