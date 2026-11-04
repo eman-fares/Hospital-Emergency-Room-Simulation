@@ -1,4 +1,5 @@
 package hospital;
+
 public class Semaphore {
 
     protected int value = 0;
@@ -26,19 +27,22 @@ public class Semaphore {
     }
 
     public synchronized boolean tryAcquire(long timeoutMs) throws InterruptedException {
-        long deadline = System.currentTimeMillis() + timeoutMs;
-        long duration = timeoutMs;
-        value--;
-        if (value < 0) {
-            while (value < 0) {
-                if (duration <= 0) {
-                    value++;
-                    return false;
-                }
-                wait(duration);
-                duration = deadline - System.currentTimeMillis();
-            }
+        if (value > 0) {
+            value--;
+            return true;
         }
+        long deadline = System.currentTimeMillis() + timeoutMs;
+        while (value <= 0) {
+            long remaining = deadline - System.currentTimeMillis();
+            if (remaining <= 0)
+                return false;
+            wait(remaining);
+        }
+        value--;
         return true;
+    }
+
+    public synchronized int availablePermits() {
+        return Math.max(value, 0);
     }
 }

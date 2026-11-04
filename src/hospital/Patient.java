@@ -24,7 +24,7 @@ public class Patient extends Thread {
         try {
             Logger.log("P" + patientId + " arrived.");
 
-            if (waitingRoom.addPatient(this)) {
+            if (waitingRoom.tryEnter(this)) {
                 Logger.log("P" + patientId + " entered the waiting room.");
             } else {
                 Logger.log("The waiting room is full.");

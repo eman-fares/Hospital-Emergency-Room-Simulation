@@ -72,7 +72,7 @@ public class Hospital {
         for (Patient patient : patients) {
             patient.start();
             try {
-                Thread.sleep(150);
+                Thread.sleep(200);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
             }
